@@ -11,7 +11,7 @@ electron_1.ipcMain.on("close", () => {
 let win = null;
 function createWindow() {
     win = new electron_1.BrowserWindow({
-        width: 700,
+        width: 500,
         height: 900,
         webPreferences: {
             preload: path_1.default.join(__dirname, "preload.js"),

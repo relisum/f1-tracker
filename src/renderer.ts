@@ -13,6 +13,7 @@ type DriverType = {
   driver_number: number;
   team_name: string;
   headshot_url: string;
+  country_code: string;
 }
 
 type MeetingType = {
@@ -20,6 +21,17 @@ type MeetingType = {
   location: string;
   meeting_official_name: string;
 }
+
+type TeamType = {
+  team_name: string;
+  logo_url: string;
+  country: string;
+  foundation_year: number;
+  chief_engineer: string;
+  points: number;
+  wins: number;
+  podiums: number;
+};
 
 
 const trackContainer = document.getElementById("track");
@@ -74,14 +86,15 @@ async function getMeeting(meetingKey: number): Promise<MeetingType> {
   return meetings[0];
 }
 
-// --- Рендер ---
+// RENDER
+
 function renderTrackCard(meeting: MeetingType) {
   if (!trackContainer) return;
   const card = createCard()
 
   card.innerHTML = `
-    <h3>${meeting.location}</h3>
-    <img src="${meeting.circuit_image}" alt="${meeting.location}" style="width:100%; border-radius:6px;" />
+    <h3>Closest: ${meeting.location}</h3>
+    <img src="${meeting.circuit_image}" alt="${meeting.location}" />
   `;
 
   trackContainer.appendChild(card);
@@ -93,12 +106,70 @@ function renderDriverCard(driver: DriverType) {
   const card = createCard();
 
   card.innerHTML = `
-    <img src="${driver.headshot_url}" alt="${driver.full_name}" style="width:100px; height:100px; border-radius:50%;" />
+    <img src="${driver.headshot_url}" alt="${driver.full_name}" />
     <h4>${driver.full_name.split(" ")[1]}</h4>
+    <div class="additional">
+        ${driver.team_name} | ${driver.country_code || "N/A"}
+    </div>
   `;
 
   driversContainer.appendChild(card);
 }
+
+function renderTeamCard(team: TeamType) {
+  if (!driversContainer) return; // или отдельный контейнер для команд
+
+  const card = document.createElement("div");
+  card.className = "team-card";
+
+  card.innerHTML = `
+    <div class="team-header">
+      <img src="${team.logo_url}" alt="${team.team_name}" />
+      <h3>${team.team_name}</h3>
+    </div>
+
+    <div class="team-info">
+      <p>Страна: ${team.country}</p>
+      <p>Год основания: ${team.foundation_year}</p>
+      <p>Главный инженер: ${team.chief_engineer}</p>
+      <p>Очки: ${team.points} | Победы: ${team.wins} | Подиумы: ${team.podiums}</p>
+    </div>
+  `;
+
+  driversContainer.appendChild(card);
+}
+
+// CLICK LISTENER
+function enableGlobalToggle() {
+  const cards = driversContainer?.querySelectorAll<HTMLDivElement>('.card');
+  if (!cards) return;
+
+  // Изначально скрываем все .additional
+  cards.forEach(card => {
+    const add = card.querySelector<HTMLDivElement>('.additional');
+    if (add) {
+      add.style.maxHeight = '0px';
+      add.style.overflow = 'hidden';
+      add.style.transition = 'max-height 0.3s ease';
+    }
+  });
+
+  // При клике на любую карточку — переключаем все
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const isOpen = Array.from(cards).some(c => {
+        const add = c.querySelector<HTMLDivElement>('.additional');
+        return add && add.style.maxHeight !== '0px';
+      });
+
+      cards.forEach(c => {
+        const add = c.querySelector<HTMLDivElement>('.additional');
+        if (add) add.style.maxHeight = isOpen ? '0px' : add.scrollHeight + 'px';
+      });
+    });
+  });
+}
+
 
 (async () => {
   try {
@@ -108,14 +179,26 @@ function renderDriverCard(driver: DriverType) {
       return name.includes("leclerc") || name.includes("hamilton");
     })
 
-    // Берём первого пилота, чтобы найти ближайший трек
     const closestLoc = await getClosestLocation(ferrariDrivers[0].driver_number);
     if (!closestLoc) return;
 
     const meeting = await getMeeting(closestLoc.meeting_key);
     renderTrackCard(meeting);
-
     ferrariDrivers.forEach(driver => renderDriverCard(driver));
+    enableGlobalToggle()
+
+    const ferrariTeam: TeamType = {
+      team_name: "Ferrari",
+      logo_url: "https://upload.wikimedia.org/wikipedia/ru/thumb/c/c0/Scuderia_Ferrari_Logo.svg/120px-Scuderia_Ferrari_Logo.svg.png",
+      country: "Italy",
+      foundation_year: 1929,
+      chief_engineer: "Enrico Cardile",
+      points: 560,
+      wins: 5,
+      podiums: 12,
+    }
+
+    renderTeamCard(ferrariTeam);
 
   } catch (err) {
     console.error(err);
