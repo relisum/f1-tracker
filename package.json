@@ -1,16 +1,16 @@
 {
-  "name": "oop-lab",
+  "name": "f1-tracker",
   "version": "1.0.0",
-  "description": "app for tracking your gooning and pills :)",
+  "description": "app for tracking my favourite Formula Command :)",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc && cpx \"src/**/*.{html,css,svg}\" dist",
     "dev": "concurrently \"tsc -w\" \"cpx \\\"src/**/*.{html,css,svg}\\\" dist --watch\" \"electronmon .\"",
-    "dist": "electron-packager . \"Goon Tracker\" --platform=win32 --arch=x64 --out=release"
+    "dist": "electron-packager . \"Formula Tracker\" --platform=win32 --arch=x64 --out=release"
   },
   "build": {
-    "appId": "com.noneid.goontracker",
-    "productName": "Goon Tracker",
+    "appId": "com.noneid.formulatracker",
+    "productName": "Formula Tracker",
     "directories": {
       "output": "release"
     },

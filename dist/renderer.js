@@ -1,66 +1,79 @@
-const buttons = document.querySelectorAll(".button");
-const underline = document.querySelector(".underline");
-const moveUnderline = (el) => {
-    const left = el.offsetLeft;
-    const width = el.offsetWidth;
-    underline.style.width = `${width}px`;
-    underline.style.transform = `translateX(${left}px)`;
-};
-const changePage = () => {
-    const container = document.getElementById('page-container');
-    buttons.forEach((button, index) => {
-        if (button.classList.contains('active')) {
-            container.style.transform = `translateX(${index * -50}%)`;
-        }
-    });
-};
-buttons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-        buttons.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        changePage();
-        moveUnderline(btn);
-    });
-});
-class GoonItem {
-    constructor(name, icon, max) {
-        this.count = 0;
-        this.name = name;
-        this.icon = icon;
-        this.max = max;
-    }
-    add(amount = 1) {
-        this.count += amount;
-        if (this.max !== undefined && this.count > this.max) {
-            this.count = this.max;
-        }
-    }
-    displayName() {
-        return this.name;
-    }
-    displayCount() {
-        return this.count;
-    }
+const trackContainer = document.getElementById("track");
+const driversContainer = document.getElementById("drivers");
+const SESSION_KEY = 9158;
+const TARGET_TIME = "2024-03-02T15:23:45Z";
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok)
+        throw new Error(`Failed to fetch ${url}`);
+    return res.json();
 }
-const alcohol = new GoonItem("Alcohol", "./assets/beer.svg");
-function renderAlcohol() {
-    const container = document.getElementById("alcohol");
-    if (!container)
+const createCard = () => {
+    const card = document.createElement("div");
+    card.className = "card";
+    return card;
+};
+const getDrivers = async () => {
+    return await fetchJSON(`https://api.openf1.org/v1/drivers?session_key=${SESSION_KEY}`);
+};
+async function getClosestLocation(driverNumber) {
+    const data = await fetchJSON(`https://api.openf1.org/v1/location?session_key=${SESSION_KEY}&driver_number=${driverNumber}`);
+    if (!data.length)
+        return null;
+    const target = new Date(TARGET_TIME).getTime();
+    let closest = null;
+    let minDiff = Infinity;
+    for (const point of data) {
+        const pointTime = new Date(point.date).getTime();
+        const diff = Math.abs(pointTime - target);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closest = point;
+        }
+    }
+    return closest;
+}
+async function getMeeting(meetingKey) {
+    const meetings = await fetchJSON(`https://api.openf1.org/v1/meetings?meeting_key=${meetingKey}`);
+    return meetings[0];
+}
+// --- Рендер ---
+function renderTrackCard(meeting) {
+    if (!trackContainer)
         return;
-    container.innerHTML = `
-    <p id="alcohol-count">${alcohol.displayName()}</p>
-    <span>${alcohol.displayCount()}</span>
-    <button id="alcohol-add">+</button>
+    const card = createCard();
+    card.innerHTML = `
+    <h3>${meeting.location}</h3>
+    <img src="${meeting.circuit_image}" alt="${meeting.location}" style="width:100%; border-radius:6px;" />
   `;
-    const addBtn = document.getElementById("alcohol-add");
-    addBtn?.addEventListener("click", () => {
-        alcohol.add();
-        renderAlcohol();
-    });
+    trackContainer.appendChild(card);
 }
-window.addEventListener("DOMContentLoaded", () => {
-    const active = document.querySelector(".button.active");
-    if (active)
-        moveUnderline(active);
-    renderAlcohol();
-});
+function renderDriverCard(driver) {
+    if (!driversContainer)
+        return;
+    const card = createCard();
+    card.innerHTML = `
+    <img src="${driver.headshot_url}" alt="${driver.full_name}" style="width:100px; height:100px; border-radius:50%;" />
+    <h4>${driver.full_name.split(" ")[1]}</h4>
+  `;
+    driversContainer.appendChild(card);
+}
+(async () => {
+    try {
+        const drivers = await getDrivers();
+        const ferrariDrivers = drivers.filter(d => {
+            const name = d.full_name.toLowerCase();
+            return name.includes("leclerc") || name.includes("hamilton");
+        });
+        // Берём первого пилота, чтобы найти ближайший трек
+        const closestLoc = await getClosestLocation(ferrariDrivers[0].driver_number);
+        if (!closestLoc)
+            return;
+        const meeting = await getMeeting(closestLoc.meeting_key);
+        renderTrackCard(meeting);
+        ferrariDrivers.forEach(driver => renderDriverCard(driver));
+    }
+    catch (err) {
+        console.error(err);
+    }
+})();

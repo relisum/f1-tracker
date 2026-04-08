@@ -15,8 +15,8 @@ function createWindow() {
         height: 900,
         webPreferences: {
             preload: path_1.default.join(__dirname, "preload.js"),
-            contextIsolation: true,
             nodeIntegration: true,
+            contextIsolation: false,
         },
     });
     win.loadFile(path_1.default.join(__dirname, "index.html"));

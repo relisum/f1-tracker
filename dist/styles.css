@@ -1,12 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400..800&display=swap');
 
 
+:root {
+    --red: #E32119;
+    --red2: #FF2800;
+    --background: #FFF;
+    --contrast: #f5dfdc
+}
+
 html, body {
     height: 100%;
     margin: 0;
     max-width: 100vw;
     padding: 0;
-    background: #cfd7e3;
+    background: var(--background);
     overflow-x: hidden;
 }
 
@@ -28,7 +35,7 @@ header {
     flex-direction: column;
     padding: 12px 12px 0 12px;
     margin-bottom: 8px;
-    background-color: #ffffff;
+    background-color: var(--contrast);
     gap: 8px
 }
 
@@ -64,44 +71,6 @@ header > .controls > .underline {
 main#page-container {
     display: flex;
     flex-direction: row;
-    width: 200vw;
     transform: translateX(0);
     transition: transform 0.3s ease;
-}
-
-main > .page {
-    display: grid;
-    width: 100vw;
-    padding: 16px;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-}
-
-main > .page > .goon-item {
-    padding: 12px;
-    border-radius: 8px;
-    background-color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-}
-
-main > .page > .goon-item > button {
-    width: 80%;
-    outline: none;
-    border: none;
-    background-color: #92e87d;
-    border-radius: 4px;
-    min-height: 56px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-main > .page > .goon-item > button:active {
-    background-color: #7bd365;
-}
-
-main > .page > .goon-item > span {
-    font-size: clamp(40px, 10vw, 60px);
 }
