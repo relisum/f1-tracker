@@ -1,0 +1,47 @@
+{
+  "name": "oop-lab",
+  "version": "1.0.0",
+  "description": "app for tracking your gooning and pills :)",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc && cpx \"src/**/*.{html,css,svg}\" dist",
+    "dev": "concurrently \"tsc -w\" \"cpx \\\"src/**/*.{html,css,svg}\\\" dist --watch\" \"electronmon .\"",
+    "dist": "electron-packager . \"Goon Tracker\" --platform=win32 --arch=x64 --out=release"
+  },
+  "build": {
+    "appId": "com.noneid.goontracker",
+    "productName": "Goon Tracker",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "forceCodeSigning": false
+    },
+    "publish": null
+  },
+  "dependencies": {
+    "electron-reload": "^2.0.0-alpha.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cpx": "^1.5.0",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
+    "electron-packager": "^17.1.2",
+    "electronmon": "^2.0.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.0.4"
+  },
+  "private": true,
+  "author": "relisum",
+  "license": "MIT"
+}

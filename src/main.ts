@@ -1,0 +1,31 @@
+import { app, BrowserWindow, ipcMain } from "electron"
+import path from "path"
+
+
+ipcMain.on("close", () => {
+    app.quit()
+})
+
+let win: BrowserWindow | null = null
+
+function createWindow() {
+    win = new BrowserWindow({
+        width: 700,
+        height: 900,
+        webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+            contextIsolation: true,
+            nodeIntegration: true,
+        },
+    })
+
+    win.loadFile(path.join(__dirname, "index.html"))
+}
+
+app.whenReady().then(() => {
+    try {
+        createWindow()
+    } catch (e) {
+        console.error(e)
+    }
+})
