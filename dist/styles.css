@@ -39,12 +39,14 @@ header h1 {
 #track {
     display: flex;
     justify-content: center;
-    padding: 24px;
+    padding: 12px 24px;
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 #track > .card {
     position: relative;
-    width: clamp(300px, 60vw, 600px);
+    width: 100%;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 8px 20px var(--shadow);
@@ -76,13 +78,14 @@ header h1 {
     display: flex;
     justify-content: center;
     gap: 24px;
-    padding: 24px;
+    padding: 12px 24px;
     flex-wrap: wrap;
 }
 
 /* Driver Card */
 #drivers > .card {
     display: flex;
+    flex: 1;
     flex-direction: column;
     align-items: center;
     background-color: var(--red);
@@ -93,6 +96,7 @@ header h1 {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0 6px 16px var(--shadow);
     cursor: pointer;
+    max-width: 180px;
 }
 
 #drivers > .card:hover {
@@ -129,11 +133,11 @@ header h1 {
     border-radius: 16px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.15);
     padding: 16px;
-    margin: 16px;
     background-color: var(--red);
     color: var(--background);
     transition: transform 0.2s ease;
-    width: clamp(300px, 60vw, 600px)
+    width: 100%;
+    max-width: 400px;
 }
 
 .team-header {
