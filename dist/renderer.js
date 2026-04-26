@@ -1,142 +1,188 @@
-const trackContainer = document.getElementById("track");
-const driversContainer = document.getElementById("drivers");
-const SESSION_KEY = 9158;
-const TARGET_TIME = "2024-03-02T15:23:45Z";
-async function fetchJSON(url) {
-    const res = await fetch(url);
-    if (!res.ok)
-        throw new Error(`Failed to fetch ${url}`);
-    return res.json();
-}
-const createCard = () => {
-    const card = document.createElement("div");
-    card.className = "card";
-    return card;
+const FERRARI_TEAM = {
+    team_name: "Ferrari",
+    logo_url: "https://upload.wikimedia.org/wikipedia/ru/thumb/c/c0/Scuderia_Ferrari_Logo.svg/120px-Scuderia_Ferrari_Logo.svg.png",
+    country: "Italy",
+    foundation_year: 1929,
+    chief_engineer: "Enrico Cardile",
+    points: 560,
+    wins: 5,
+    podiums: 12,
 };
-const getDrivers = async () => {
-    return await fetchJSON(`https://api.openf1.org/v1/drivers?session_key=${SESSION_KEY}`);
-};
-async function getClosestLocation(driverNumber) {
-    const data = await fetchJSON(`https://api.openf1.org/v1/location?session_key=${SESSION_KEY}&driver_number=${driverNumber}`);
-    if (!data.length)
-        return null;
-    const target = new Date(TARGET_TIME).getTime();
-    let closest = null;
-    let minDiff = Infinity;
-    for (const point of data) {
-        const pointTime = new Date(point.date).getTime();
-        const diff = Math.abs(pointTime - target);
-        if (diff < minDiff) {
-            minDiff = diff;
-            closest = point;
-        }
+// ApiClient class with encapsulation
+class ApiClient {
+    constructor(baseUrl) {
+        this.baseUrl = baseUrl;
     }
-    return closest;
+    async fetchJSON(path) {
+        const res = await fetch(`${this.baseUrl}${path}`);
+        if (!res.ok)
+            throw new Error(`Request failed: ${this.baseUrl}${path}`);
+        return res.json();
+    }
 }
-async function getMeeting(meetingKey) {
-    const meetings = await fetchJSON(`https://api.openf1.org/v1/meetings?meeting_key=${meetingKey}`);
-    return meetings[0];
+// class BaseEntity with abstraction
+class BaseEntity {
+    constructor(client) {
+        this.client = client;
+    }
 }
-// RENDER
-function renderTrackCard(meeting) {
-    if (!trackContainer)
-        return;
-    const card = createCard();
-    card.innerHTML = `
-    <h3>Closest: ${meeting.location}</h3>
-    <img src="${meeting.circuit_image}" alt="${meeting.location}" />
-  `;
-    trackContainer.appendChild(card);
+// class Driver with inherit
+class Driver extends BaseEntity {
+    constructor(client, data) {
+        super(client);
+        this.number = data.driver_number;
+        this.name = data.full_name;
+        this.team = data.team_name;
+        this.headshotUrl = data.headshot_url;
+        this.countryCode = data.country_code;
+    }
+    async fetch() {
+        return this.getClosestLocation();
+    }
+    async getClosestLocation() {
+        const data = await this.client.fetchJSON(`/v1/location?session_key=${Driver.SESSION_KEY}&driver_number=${this.number}`);
+        if (!data.length)
+            return null;
+        const target = new Date(Driver.TARGET_TIME).getTime();
+        return data.reduce((closest, point) => {
+            const diff = Math.abs(new Date(point.date).getTime() - target);
+            const bestDiff = Math.abs(new Date(closest.date).getTime() - target);
+            return diff < bestDiff ? point : closest;
+        });
+    }
+    static async fetchAll(client) {
+        const data = await client.fetchJSON(`/v1/drivers?session_key=${Driver.SESSION_KEY}`);
+        return data.map(d => new Driver(client, d));
+    }
 }
-function renderDriverCard(driver) {
-    if (!driversContainer)
-        return;
-    const card = createCard();
-    card.innerHTML = `
-    <img src="${driver.headshot_url}" alt="${driver.full_name}" />
-    <h4>${driver.full_name.split(" ")[1]}</h4>
-    <div class="additional">
-        ${driver.team_name} | ${driver.country_code || "N/A"}
-    </div>
-  `;
-    driversContainer.appendChild(card);
+Driver.SESSION_KEY = 9158;
+Driver.TARGET_TIME = "2024-03-02T15:23:45Z";
+// class FerrariDriver with polymorphism
+class FerrariDriver extends Driver {
+    constructor(client, data, commandColor = "#DC0000") {
+        super(client, data);
+        this.commandColor = commandColor;
+    }
+    isFerrari() {
+        return this.team.toLowerCase().includes("ferrari");
+    }
+    render(container) {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.borderTop = `3px solid ${this.commandColor}`;
+        card.innerHTML = `
+      <img src="${this.headshotUrl}" alt="${this.name}" />
+      <h4>${this.name.split(" ")[1]}</h4>
+      <div class="additional">
+        ${this.team} | ${this.countryCode || "N/A"}
+      </div>
+    `;
+        container.appendChild(card);
+    }
 }
-function renderTeamCard(team) {
-    if (!driversContainer)
-        return; // или отдельный контейнер для команд
-    const card = document.createElement("div");
-    card.className = "team-card";
-    card.innerHTML = `
-    <div class="team-header">
-      <img src="${team.logo_url}" alt="${team.team_name}" />
-      <h3>${team.team_name}</h3>
-    </div>
-
-    <div class="team-info">
-      <p>Страна: ${team.country}</p>
-      <p>Год основания: ${team.foundation_year}</p>
-      <p>Главный инженер: ${team.chief_engineer}</p>
-      <p>Очки: ${team.points} | Победы: ${team.wins} | Подиумы: ${team.podiums}</p>
-    </div>
-  `;
-    driversContainer.appendChild(card);
-}
-// CLICK LISTENER
-function enableGlobalToggle() {
-    const cards = driversContainer?.querySelectorAll('.card');
-    if (!cards)
-        return;
-    // Изначально скрываем все .additional
-    cards.forEach(card => {
-        const add = card.querySelector('.additional');
-        if (add) {
-            add.style.maxHeight = '0px';
-            add.style.overflow = 'hidden';
-            add.style.transition = 'max-height 0.3s ease';
-        }
-    });
-    // При клике на любую карточку — переключаем все
-    cards.forEach(card => {
-        card.addEventListener('click', () => {
-            const isOpen = Array.from(cards).some(c => {
-                const add = c.querySelector('.additional');
-                return add && add.style.maxHeight !== '0px';
-            });
-            cards.forEach(c => {
-                const add = c.querySelector('.additional');
-                if (add)
-                    add.style.maxHeight = isOpen ? '0px' : add.scrollHeight + 'px';
+// Render
+class Renderer {
+    constructor(containerId) {
+        const el = document.getElementById(containerId);
+        const driversEl = document.getElementById("drivers");
+        if (!el || !driversEl)
+            throw new Error(`Container #${containerId} not found`);
+        this.container = el;
+        this.driversContainer = driversEl;
+    }
+    renderTrack(meeting) {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+      <h3>${meeting.location}</h3>
+      <img src="${meeting.circuit_image}" alt="${meeting.location}" />
+    `;
+        this.container.appendChild(card);
+    }
+    renderTeamCard(team) {
+        if (!this.driversContainer || !team)
+            return; // или отдельный контейнер для команд
+        const card = document.createElement("div");
+        card.className = "team-card";
+        card.innerHTML = `
+      <div class="team-header">
+        <img src="${team.logo_url}" alt="${team.team_name}" />
+        <h3>${team.team_name}</h3>
+      </div>
+  
+      <div class="team-info">
+        <p>Страна: ${team.country}</p>
+        <p>Год основания: ${team.foundation_year}</p>
+        <p>Главный инженер: ${team.chief_engineer}</p>
+        <p>Очки: ${team.points} | Победы: ${team.wins} | Подиумы: ${team.podiums}</p>
+      </div>
+    `;
+        this.driversContainer.appendChild(card);
+    }
+    enableToggle() {
+        const cards = this.container.querySelectorAll(".card");
+        cards.forEach(card => {
+            const add = card.querySelector(".additional");
+            if (add) {
+                add.style.maxHeight = "0px";
+                add.style.overflow = "hidden";
+                add.style.transition = "max-height 0.3s ease";
+            }
+        });
+        cards.forEach(card => {
+            card.addEventListener("click", () => {
+                const isOpen = Array.from(cards).some(c => {
+                    const add = c.querySelector(".additional");
+                    return add && add.style.maxHeight !== "0px";
+                });
+                cards.forEach(c => {
+                    const add = c.querySelector(".additional");
+                    if (add)
+                        add.style.maxHeight = isOpen ? "0px" : `${add.scrollHeight}px`;
+                });
             });
         });
-    });
+    }
+}
+// App
+class App {
+    constructor() {
+        this.client = new ApiClient("https://api.openf1.org");
+        this.trackRenderer = new Renderer("track");
+        this.driverRenderer = new Renderer("drivers");
+    }
+    async run() {
+        const allDrivers = await Driver.fetchAll(this.client);
+        const ferrariDrivers = allDrivers
+            .filter(d => {
+            const name = d.name.toLowerCase();
+            return name.includes("leclerc") || name.includes("hamilton");
+        })
+            .map(d => new FerrariDriver(this.client, {
+            driver_number: d.number,
+            full_name: d.name,
+            team_name: d.team,
+            headshot_url: d.headshotUrl,
+            country_code: d.countryCode,
+        }));
+        if (!ferrariDrivers.length)
+            return;
+        const location = await ferrariDrivers[0].getClosestLocation();
+        if (!location)
+            return;
+        const [meeting] = await this.client.fetchJSON(`/v1/meetings?meeting_key=${location.meeting_key}`);
+        this.trackRenderer.renderTrack(meeting);
+        ferrariDrivers.forEach(driver => driver.render(this.driverRenderer["container"]));
+        this.trackRenderer.renderTeamCard(FERRARI_TEAM);
+        this.driverRenderer.enableToggle();
+    }
 }
 (async () => {
     try {
-        const drivers = await getDrivers();
-        const ferrariDrivers = drivers.filter(d => {
-            const name = d.full_name.toLowerCase();
-            return name.includes("leclerc") || name.includes("hamilton");
-        });
-        const closestLoc = await getClosestLocation(ferrariDrivers[0].driver_number);
-        if (!closestLoc)
-            return;
-        const meeting = await getMeeting(closestLoc.meeting_key);
-        renderTrackCard(meeting);
-        ferrariDrivers.forEach(driver => renderDriverCard(driver));
-        enableGlobalToggle();
-        const ferrariTeam = {
-            team_name: "Ferrari",
-            logo_url: "https://upload.wikimedia.org/wikipedia/ru/thumb/c/c0/Scuderia_Ferrari_Logo.svg/120px-Scuderia_Ferrari_Logo.svg.png",
-            country: "Italy",
-            foundation_year: 1929,
-            chief_engineer: "Enrico Cardile",
-            points: 560,
-            wins: 5,
-            podiums: 12,
-        };
-        renderTeamCard(ferrariTeam);
+        const app = new App();
+        await app.run();
     }
     catch (err) {
-        console.error(err);
+        console.error("App error:", err);
     }
 })();
