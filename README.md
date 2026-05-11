@@ -7,3 +7,10 @@
 <code>yarn i</code><br />
 <code>yarn run dev</code>
 <p>it's done!</p>
+
+<h2>Stack I used:</h2>
+<ul>
+  <li>Typescript</li>
+  <li>Electron</li>
+  <li>Html + css</li>
+</ul>
